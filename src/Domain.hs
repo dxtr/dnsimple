@@ -5,7 +5,6 @@ module Domain
          dispatch
        ) where
 
-import Control.Monad (mzero)
 import Data.Aeson
 import Data.ByteString.Char8 as C
 import Data.ByteString.Lazy as L
@@ -40,10 +39,6 @@ data Response =
   Response { domain :: Domain }
   deriving (Show, Generic)
 
---instance FromJSON Domain where
---  parseJSON (Object v) =
---    Domain <$>
---    (v .: "id") <*>
 instance FromJSON Domain    
 instance ToJSON Domain
 instance FromJSON Response
@@ -82,14 +77,14 @@ parseResponse status msg body lst
 
 list :: [String] -> [Args.Flag] -> IO ()
 list cmdArgs args = do
-  (status, msg, headers, body) <- HTTP.get "domains"
+  (status, msg, _, body) <- HTTP.get "domains"
   response <- parseResponse status msg body True
   print response
     
 get :: [String] -> [Args.Flag] -> IO ()
 get cmdArgs args = do
-  let domain = Prelude.head cmdArgs
-  (status, msg, headers, body) <- HTTP.get ("domains/" ++ domain)
+  let dom = Prelude.head cmdArgs
+  (status, msg, _, body) <- HTTP.get ("domains/" ++ dom)
   response <- parseResponse status msg body False
   print response
 

@@ -38,7 +38,7 @@ test args command
   | otherwise = return (nub (List.concatMap set args), command)
   where header = "Usage: dnsimple [-vVh] command"
         set f = [f]
-
+parse :: [String] -> IO ([Flag], [String])
 parse argv = case getOpt Permute flags argv of
   (args, fs, []) -> do
     test args fs

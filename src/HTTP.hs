@@ -14,11 +14,15 @@ import Data.ByteString.Lazy as L
 import Network.HTTP.Conduit as HC
 import Network.HTTP.Types as HT
 
+username :: C.ByteString
 username = C.pack "kim@dxtr.im"
+apiToken :: C.ByteString
 apiToken = C.pack "28TPsQT6yW4nbkGptxVnC9vGceJAquWi"
 
+getCredentials :: C.ByteString
 getCredentials = C.concat [username, (C.pack ":"), apiToken]
 
+getHeaders :: [(HeaderName, C.ByteString)]
 getHeaders = [ ("Accept", "application/json; charset=UTF-8")
              , ("Content-Type", "application/json")
              , ("X-DNSimple-Token", getCredentials)]
@@ -33,11 +37,12 @@ request method body additionalHeaders path = do
                          , checkStatus = \_ _ _ -> Nothing}
   manager <- liftIO $ newManager tlsManagerSettings
   req <- httpLbs request manager
-  let status = statusCode $ responseStatus req
+  let statusCd = statusCode $ responseStatus req
   let msg = statusMessage $ responseStatus req
   let headers = responseHeaders req
   let body = responseBody req
-  return (status == 200, msg, headers, body)
+  let status = (statusCd == 200) || (statusCd == 201)
+  return (status, msg, headers, body)
 
 
 get :: [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)

@@ -20,6 +20,8 @@ library
                      , HTTP
                      , Domain
   build-depends:       base >= 4.7 && < 5
+                     , directory
+                     , filepath
                      , network
                      , transformers
                      , bytestring
