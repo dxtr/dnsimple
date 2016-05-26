@@ -14,13 +14,8 @@ import Data.ByteString.Lazy as L
 import Network.HTTP.Conduit as HC
 import Network.HTTP.Types as HT
 
-username :: C.ByteString
-username = C.pack "kim@dxtr.im"
-apiToken :: C.ByteString
-apiToken = C.pack "28TPsQT6yW4nbkGptxVnC9vGceJAquWi"
-
-getCredentials :: C.ByteString
-getCredentials = C.concat [username, (C.pack ":"), apiToken]
+-- getCredentials :: C.ByteString
+-- getCredentials = C.concat [username, (C.pack ":"), apiToken]
 
 getHeaders :: [(HeaderName, C.ByteString)]
 getHeaders = [ ("Accept", "application/json; charset=UTF-8")

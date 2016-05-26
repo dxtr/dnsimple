@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module Domain
        (
@@ -6,13 +6,15 @@ module Domain
        ) where
 
 import Data.Aeson
-import Data.ByteString.Char8 as C
-import Data.ByteString.Lazy as L
-import Data.ByteString.Lazy.Char8 as LC
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy.Char8 as LC
+import qualified Data.Map.Strict as Map
 import Data.Int (Int64)
 import GHC.Generics
 
 import qualified Args
+import Config (Settings)
 import qualified HTTP
 
 data Domain =
@@ -88,15 +90,14 @@ get cmdArgs args = do
   response <- parseResponse status msg body False
   print response
 
-dispatch :: [String] -> [Args.Flag] -> IO ()
-dispatch command args
-  | Prelude.length command == 0 = do
-      Prelude.putStrLn "No domain command specified"
-  | Prelude.length command == 1 = do
-      list [] args
-  | Prelude.head command == "list" = do
-      list (Prelude.tail command) args
-  | Prelude.head command == "get" = do
-      get (Prelude.tail command) args
-  | otherwise = do
-      Prelude.putStrLn "Unknown domain command!"
+-- dispatchCommands :: Map.Map String ([String] -> [Args.Flag] -> IO ())
+dispatchCommands = Map.fromList [("list", list)
+                                ,("get", get)]
+
+dispatch :: [String] -> Settings -> [Args.Flag] -> IO ()
+dispatch [] _ _ = putStrLn "No domain command specified!"
+dispatch (cmd:cmdArgs) _ args =
+  case Map.lookup cmd dispatchCommands of
+    Nothing -> do putStrLn $ "Unknown domain command " ++ cmd
+    Just dispatchCmd -> do dispatchCmd cmdArgs args
+  

@@ -4,69 +4,46 @@ module Lib
     ( dnsimpleMain
     ) where
 
+--import qualified Prelude (putStrLn)
 import Data.Aeson
-import Data.ByteString.Char8 as C
-import Data.ByteString.Lazy as L
+import qualified Data.ByteString.Char8 as C
+import qualified Data.Map.Strict as Map
+import Data.Maybe (fromJust)
 import GHC.Generics
-import System.Directory
 import System.Environment (getArgs, getEnv)
-import System.FilePath.Posix (joinPath)
 
 import qualified Args
-import qualified HTTP
+import Config (Settings, loadCfg, getCfgFile)
 import qualified Domain
-
-data Settings =
-  Settings { username :: Maybe String
-           , api_key :: Maybe String }
-  deriving (Show, Generic)
-
-instance FromJSON Settings
-instance ToJSON Settings
+import qualified HTTP
 
 authorize :: IO (Bool, C.ByteString)
 authorize = do
   (status, msg, headers, body) <- HTTP.get "user"
   return (status, msg)
 
+dispatchCommands :: Map.Map String ([String] -> Settings -> [Args.Flag] -> IO ())
+dispatchCommands = Map.fromList [("domain", Domain.dispatch)]
+
 dispatch :: [String] -> Maybe Settings -> [Args.Flag] -> IO ()
-dispatch command setting args
-  | Prelude.length command == 0 = do
-      Prelude.putStrLn "No command specified!"
-  | Prelude.head command == "domain" = do
-      let cmdArgs = Prelude.tail command
-      Domain.dispatch cmdArgs args
-  | otherwise = do
-      Prelude.putStrLn $ "Unknown command " ++ Prelude.head command
-
-getAppDirectory = do
-  appDir <- getAppUserDataDirectory "dnsimple"
-  createDirectoryIfMissing False appDir
-  return appDir
-
-getCfgFile :: IO FilePath
-getCfgFile = joinPath . "config.json" <$> getAppDirectory 
-
-readCfg :: FilePath -> IO (Maybe Settings)
-readCfg path = do
-  cfg <- L.readFile path
-  let cfgObj = eitherDecode cfg :: Either String Settings
-  case cfgObj of
-    Left err -> do
-      Prelude.putStrLn err
-      return Nothing
-    Right obj -> do
-      return (Just obj)
-
-loadCfg :: FilePath -> IO (Maybe Settings)
-loadCfg cfgFile = do
-  readCfg cfgFile
+dispatch [] _ _ = putStrLn "No command specified!"
+dispatch _ Nothing _ = Prelude.putStrLn "No settings!"
+dispatch (cmd:cmdArgs) (Just settings) args =
+  case Map.lookup cmd dispatchCommands of
+    Nothing -> putStrLn $ "Unknown command " ++ cmd
+    Just dispatchCmd -> dispatchCmd cmdArgs settings args
+  
+--dispatch command setting args
+--  | Prelude.head command == "domain" = do
+--      let cmdArgs = Prelude.tail command
+--      Domain.dispatch cmdArgs args
   
 dnsimpleMain :: IO ()
 dnsimpleMain = do
   (args, command) <- getArgs >>= Args.parse
-  settings <- fmap readCfg getCfgFile -- >>= (\settings -> dispatch $ command <$> settings <$> args)
-  dispatch command settings args
+  settings <- loadCfg <$> getCfgFile -- >>= (\settings -> dispatch $ command <$> settings <$> args)
+  settings' <- settings
+  dispatch command settings' args
   -- settings <- getCfgFile >>= readCfg
   -- case settings of
   --   Nothing -> Prelude.putStrLn "Could not read configuration file!"
