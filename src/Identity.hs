@@ -2,7 +2,9 @@
 
 module Identity
   (Identity
-  , whoami) where
+  , whoami
+  , getIdentity
+  , getId) where
 
 import Data.Aeson
 import qualified Data.ByteString.Char8 as C
@@ -26,13 +28,18 @@ data Identity =
            }
   deriving (Show, Generic)
 
+-- Is this better?
+--data Identity = Account { id :: Integer
+--                        , email :: String }
+--              | User { id :: Integer
+--                     , email :: String }
+
 data Response =
   Response { message :: Maybe String,
              iddata :: Maybe Identity }
   deriving (Show, Generic)
 
 instance FromJSON Account
---instance FromJSON User
 instance FromJSON Identity where
   parseJSON = withObject "identity" $ \v -> do
     acc <- v .:? "account"
@@ -43,14 +50,10 @@ instance FromJSON Response where
   parseJSON = withObject "response" $ \v -> do
     dat <- v .:? "data"
     msg <- v .:? "message"
---    print dat
---    print msg
     return Response { message = msg,
                       iddata = dat }
---    Response <$> v .:? "message"
---    <*> v .:? "data"
+
 instance ToJSON Account
---instance ToJSON User
 instance ToJSON Identity
 instance ToJSON Response
 
@@ -62,18 +65,31 @@ parseResponse status msg body lst = do
   let responseObj = eitherDecode body :: Either String Response
   case responseObj of
     Left err -> do
-      print "Error!"
-      print err
+      putStrLn "Error!"
+      putStrLn err
       return Nothing
     Right obj -> do
       return (Just obj)
 
-whoami :: (Maybe Settings) -> IO ()
-whoami settings = do
+getIdentity :: Settings -> IO (Maybe Identity)
+getIdentity settings = do
   (status, msg, _, body) <- HTTP.get settings "whoami"
   response <- parseResponse status msg body False
   case response of
-    Nothing -> return ()
+    Nothing -> return Nothing
     (Just resp) -> do
-      let r = (Just (iddata resp))
-      print r
+      let ident = iddata resp
+      return ident
+
+whoami :: Settings -> IO ()
+whoami settings = do
+  ident <- getIdentity settings
+  case ident of
+    Nothing -> return ()
+    (Just i) -> do
+      print i
+
+getId :: Identity -> Integer
+getId Identity { account = Just acc } = Identity.id acc
+getId Identity { user = Just usr, account = Nothing } = Identity.id usr
+getId Identity { user = Nothing, account = Nothing } = -1

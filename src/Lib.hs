@@ -19,6 +19,7 @@ import Config (Settings, loadCfg, getCfgFile)
 import qualified Identity
 import qualified Domain
 import qualified HTTP
+import qualified State
 
 data Command
   = WhoAmI
@@ -71,30 +72,6 @@ authorize = do
   (status, msg, headers, body) <- HTTP.get Nothing "user"
   return (status, msg)
 
---dispatchCommands :: Map.Map String ([String] -> Settings -> [Args.Flag] -> IO ())
---dispatchCommands = Map.fromList [("domain", Domain.dispatch)]
-
---dispatch :: [String] -> Maybe Settings -> [Args.Flag] -> IO ()
---dispatch [] _ _ = putStrLn "No command specified!"
---dispatch _ Nothing _ = Prelude.putStrLn "No settings!"
---dispatch (cmd:cmdArgs) (Just settings) args =
---  case Map.lookup cmd dispatchCommands of
---    Nothing -> putStrLn $ "Unknown command " ++ cmd
---    Just dispatchCmd -> dispatchCmd cmdArgs settings args
-  
---dispatch command setting args
---  | Prelude.head command == "domain" = do
---      let cmdArgs = Prelude.tail command
---      Domain.dispatch cmdArgs args
-
---parseOptions :: Parser Options
---parseOptions = undefined
-
---parseAppFlags :: ParserInfo AppFlags
---parseAppFlags = 
---parseDebug =
---  flag False True (short 'd' <> long "debug" <> help "debug help")
-
 commandParser :: ParserInfo Command
 commandParser = info (helper <*> parseCommand) $
   mconcat [fullDesc, progDesc "Interact with dnsimple", header "v0.0.1"]
@@ -102,26 +79,19 @@ commandParser = info (helper <*> parseCommand) $
 dnsimpleMain :: IO ()
 dnsimpleMain = do
   customExecParser (prefs showHelpOnError) commandParser >>= run
-  --run =<< customExecParser (prefs showHelpOnError) parser
-  --(args, command) <- getArgs >>= Args.parse
-  --settings <- loadCfg <$> getCfgFile -- >>= (\settings -> dispatch $ command <$> settings <$> args)
-  --settings' <- settings
-  --dispatch command settings' args
-  -- settings <- getCfgFile >>= readCfg
-  -- case settings of
-  --   Nothing -> Prelude.putStrLn "Could not read configuration file!"
-  --   Just s -> dispatch command s args
 
 run :: Command -> IO ()
 run cmd = do
   cfgFile <- getCfgFile
   settings <- loadCfg cfgFile
+  ident <- Identity.getIdentity
+  let state = State.State { State.cfgFile = cfgFile
+                          , State.settings = settings
+                          , State.identity = ident }
   case cmd of
     WhoAmI -> Identity.whoami settings
     ListDomains -> Domain.list settings
     GetDomain dom -> Domain.get dom
-  --print cmd
---  case cmd of
---    DomainCmd subcmd -> putStrLn "Domain!"
---    DnsCmd subcmd -> putStrLn "DNS!"
+    CreateDomain dom -> Domain.create dom
+
 

@@ -21,6 +21,7 @@ library
                      , HTTP
                      , Domain
                      , Identity
+                     , State
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , directory
