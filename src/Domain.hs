@@ -2,7 +2,8 @@
 
 module Domain
        (
-         dispatch
+         list
+       , get
        ) where
 
 import Data.Aeson
@@ -77,27 +78,26 @@ parseResponse status msg body lst
   | lst == True = parseResponseList body
   | lst == False = parseResponseObject body
 
-list :: [String] -> [Args.Flag] -> IO ()
-list cmdArgs args = do
-  (status, msg, _, body) <- HTTP.get "domains"
+list :: (Maybe Settings) -> IO ()
+list settings = do
+  (status, msg, _, body) <- HTTP.get settings "domains"
   response <- parseResponse status msg body True
   print response
     
-get :: [String] -> [Args.Flag] -> IO ()
-get cmdArgs args = do
-  let dom = Prelude.head cmdArgs
-  (status, msg, _, body) <- HTTP.get ("domains/" ++ dom)
+get :: String -> IO ()
+get dom = do
+  (status, msg, _, body) <- HTTP.get Nothing ("domains/" ++ dom)
   response <- parseResponse status msg body False
   print response
 
 -- dispatchCommands :: Map.Map String ([String] -> [Args.Flag] -> IO ())
-dispatchCommands = Map.fromList [("list", list)
-                                ,("get", get)]
+--dispatchCommands = Map.fromList [("list", list)
+--                                ,("get", get)]
 
-dispatch :: [String] -> Settings -> [Args.Flag] -> IO ()
-dispatch [] _ _ = putStrLn "No domain command specified!"
-dispatch (cmd:cmdArgs) _ args =
-  case Map.lookup cmd dispatchCommands of
-    Nothing -> do putStrLn $ "Unknown domain command " ++ cmd
-    Just dispatchCmd -> do dispatchCmd cmdArgs args
+--dispatch :: [String] -> Settings -> [Args.Flag] -> IO ()
+--dispatch [] _ _ = putStrLn "No domain command specified!"
+--dispatch (cmd:cmdArgs) _ args =
+--  case Map.lookup cmd dispatchCommands of
+--    Nothing -> do putStrLn $ "Unknown domain command " ++ cmd
+--    Just dispatchCmd -> do dispatchCmd cmdArgs args
   

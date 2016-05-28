@@ -6,7 +6,12 @@ module Config
   , readCfg
   , parseCfg
   , loadCfg
+  , Authorization
   , Settings
+  , authorization
+  , username
+  , Config.id
+  , api_key
   ) where
 
 import Data.Aeson
@@ -15,9 +20,17 @@ import GHC.Generics
 import System.Directory
 import System.FilePath.Posix (joinPath)
 
+data Authorization =
+  Authorization { username :: String
+                , user_id :: Integer
+                , api_key :: String }
+  deriving (Show, Generic)
+
+instance FromJSON Authorization
+instance ToJSON Authorization
+
 data Settings =
-  Settings { username :: String
-           , api_key :: String }
+  Settings { authorization :: Authorization }
   deriving (Show, Generic)
 
 instance FromJSON Settings

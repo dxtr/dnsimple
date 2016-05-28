@@ -14,25 +14,35 @@ import Data.ByteString.Lazy as L
 import Network.HTTP.Conduit as HC
 import Network.HTTP.Types as HT
 
+import Config (Settings, authorization, api_key)
+
 -- getCredentials :: C.ByteString
 -- getCredentials = C.concat [username, (C.pack ":"), apiToken]
 
-getHeaders :: [(HeaderName, C.ByteString)]
-getHeaders = [ ("Accept", "application/json; charset=UTF-8")
-             , ("Content-Type", "application/json")
-             , ("X-DNSimple-Token", getCredentials)]
-
-request :: C.ByteString -> RequestBody -> [Header] -> String -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
-request method body additionalHeaders path = do
-  let url = Prelude.concat ["https://api.dnsimple.com/v1/",path]
+getHeaders :: (Maybe Settings) -> [(HeaderName, C.ByteString)]
+getHeaders Nothing = [("Accept", "application/json; charset=UTF-8")
+                      , ("Content-Type", "application/json")
+                      ]
+getHeaders (Just settings) = ("Authorization", tokenString) : (getHeaders Nothing)
+  where
+    authSettings = authorization settings
+    token = api_key authSettings
+    tokenString = C.pack $ "Bearer " ++ token
+request :: (Maybe Settings) -> C.ByteString -> RequestBody -> [Header] -> String -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+request settings method body additionalHeaders path = do
+  let url = Prelude.concat ["https://api.sandbox.dnsimple.com/v2/",path]
+  let headers = getHeaders settings
+  print settings
+  print headers
   request' <- parseUrl url
   let request = request' { method = method
                          , requestBody = body
-                         , requestHeaders = getHeaders ++ additionalHeaders ++ requestHeaders request'
+                         , requestHeaders = headers ++ additionalHeaders ++ requestHeaders request'
                          , checkStatus = \_ _ _ -> Nothing}
   manager <- liftIO $ newManager tlsManagerSettings
   req <- httpLbs request manager
   let statusCd = statusCode $ responseStatus req
+  print statusCd
   let msg = statusMessage $ responseStatus req
   let headers = responseHeaders req
   let body = responseBody req
@@ -40,18 +50,18 @@ request method body additionalHeaders path = do
   return (status, msg, headers, body)
 
 
-get :: [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
-get path = do
-  request "GET" "" [] path
+get :: (Maybe Settings) -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+get settings path = do
+  request settings "GET" "" [] path
 
-post :: [Char] -> RequestBody -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
-post path postData = do
-  request "POST" postData [] path
+post :: (Maybe Settings) -> [Char] -> RequestBody -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+post settings path postData = do
+  request settings "POST" postData [] path
 
-put :: [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
-put path = do
-  request "PUT" "" [] path
+put :: (Maybe Settings) -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+put settings path = do
+  request settings "PUT" "" [] path
 
-delete :: [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
-delete path = do
-  request "DELETE" "" [] path
+delete :: (Maybe Settings) -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+delete settings path = do
+  request settings "DELETE" "" [] path

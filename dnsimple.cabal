@@ -30,6 +30,7 @@ library
                      , http-conduit
                      , http-types
                      , aeson
+                     , optparse-applicative
   default-language:    Haskell2010
 
 executable dnsimple
