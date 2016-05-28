@@ -1,0 +1,67 @@
+
+./Args.hs,260
+module ArgsArgs0,1
+data Flag Flag10,11
+data Flag = VerboseVerbose10,11
+          | VersionVersion11,12
+          | HelpHelp12,13
+flags flags15,16
+version version28,29
+test test31,32
+  | Help `Prelude.elem`Prelude.elem33,34
+parse parse40,41
+
+./Config.hs,268
+module ConfigConfig2,3
+data Settings Settings17,18
+  Settings { username username18,19
+           , api_key api_key19,20
+getAppDirectory getAppDirectory25,26
+getCfgFile getCfgFile31,32
+readCfg readCfg36,37
+parseCfg parseCfg43,44
+loadCfg loadCfg52,53
+
+./Domain.hs,921
+data Domain Domain19,20
+  Domain { id id20,21
+         , user_id user_id21,22
+         , registrant_id registrant_id22,23
+         , name name23,24
+         , unicode_name unicode_name24,25
+         , token token25,26
+         , state state26,27
+         , language language27,28
+         , lockable lockable28,29
+         , auto_renew auto_renew29,30
+         , whois_protected whois_protected30,31
+         , record_count record_count31,32
+         , service_count service_count32,33
+         , expires_on expires_on33,34
+         , created_at created_at34,35
+         , updated_at updated_at35,36
+data Response Response39,40
+  Response { domain domain40,41
+parseResponseList parseResponseList48,49
+parseResponseObject parseResponseObject59,60
+parseResponse parseResponse70,71
+list list79,80
+get get85,86
+dispatchCommands dispatchCommands93,94
+dispatch dispatch96,97
+
+./HTTP.hs,141
+module HTTPHTTP2,3
+getHeaders getHeaders19,20
+request request24,25
+get get42,43
+post post46,47
+put put50,51
+delete delete54,55
+
+./Lib.hs,145
+module LibLib2,3
+authorize authorize19,20
+dispatchCommands dispatchCommands24,25
+dispatch dispatch27,28
+dnsimpleMain dnsimpleMain40,41

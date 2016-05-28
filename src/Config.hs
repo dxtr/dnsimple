@@ -10,7 +10,7 @@ module Config
   , Settings
   , authorization
   , username
-  , Config.id
+  , user_id
   , api_key
   ) where
 

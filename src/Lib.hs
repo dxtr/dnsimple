@@ -16,6 +16,7 @@ import System.Environment (getArgs, getEnv)
 
 import qualified Args
 import Config (Settings, loadCfg, getCfgFile)
+import qualified Identity
 import qualified Domain
 import qualified HTTP
 
@@ -111,19 +112,12 @@ dnsimpleMain = do
   --   Nothing -> Prelude.putStrLn "Could not read configuration file!"
   --   Just s -> dispatch command s args
 
-whoamiFunc :: (Maybe Settings) -> IO ()
-whoamiFunc settings = do
-  (status, msg, _, body) <- HTTP.get settings "whoami"
-  print status
-  print msg
-  print body
-  
 run :: Command -> IO ()
 run cmd = do
   cfgFile <- getCfgFile
   settings <- loadCfg cfgFile
   case cmd of
-    WhoAmI -> whoamiFunc settings
+    WhoAmI -> Identity.whoami settings
     ListDomains -> Domain.list settings
     GetDomain dom -> Domain.get dom
   --print cmd
