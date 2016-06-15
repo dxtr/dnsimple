@@ -30,10 +30,10 @@ data Command
   | GetZone String
   deriving Show
 
-data Options = Options { debug :: Bool
-                       , verbose :: Bool
-                       , sandbox :: Bool
-                       , subcommand :: Command
+data Options = Options { optDebug :: Bool
+                       , optVerbose :: Bool
+                       , optSandbox :: Bool
+                       , subCommand :: Command
                        } deriving Show
 
 withInfo :: Parser a -> String -> ParserInfo a
@@ -42,7 +42,6 @@ withInfo opts desc = info (helper <*> opts) $ progDesc desc
 makeCommand :: String -> String -> Parser a -> Mod CommandFields a
 makeCommand cmd desc parser =
   command cmd (parser `withInfo` desc)
---  command cmd $ info (helper <*> parser) $ progDesc desc
 
 domainArg :: Parser String
 domainArg = strArgument (metavar "Domain")
@@ -66,6 +65,20 @@ parseCommand = subparser (whoami <> domains <> zones)
 --  command "domain" (parseDomain `withInfo` "Do domain stuff") <>
 --  command "dns" (parseDns `withInfo` "Do DNS stuff")
 
+parseOptions :: Parser Options
+parseOptions = Options
+  <$> debugOpt
+  <$> verboseOpt
+  <$> sandboxOpt
+  <*> parseCommand
+  where
+    debugOpt = optional $ option auto $
+      long "debug" <> short 'd' <> metavar "INT" <> help "Debug mode"
+    verboseOpt = optional $ option auto $
+      long "verbose" <> short 'v' <> metavar "INT" <> help "Be verbose"
+    sandboxOpt = optional $ option auto $
+      long "sandbox" <> short 's' <> metavar "INT" <> help "Use dnsimple sandbox"
+
 
 authorize :: IO (Bool, C.ByteString)
 authorize = do
@@ -75,6 +88,10 @@ authorize = do
 commandParser :: ParserInfo Command
 commandParser = info (helper <*> parseCommand) $
   mconcat [fullDesc, progDesc "Interact with dnsimple", header "v0.0.1"]
+
+parser :: Parser Options
+parser = info (helper <*> parseOptions) $
+         mconcat [fullDesc, progDesc "Interact with dnsimple", header "v0.0.1"]
   
 dnsimpleMain :: IO ()
 dnsimpleMain = do
@@ -84,14 +101,25 @@ run :: Command -> IO ()
 run cmd = do
   cfgFile <- getCfgFile
   settings <- loadCfg cfgFile
-  ident <- Identity.getIdentity
-  let state = State.State { State.cfgFile = cfgFile
-                          , State.settings = settings
-                          , State.identity = ident }
-  case cmd of
-    WhoAmI -> Identity.whoami settings
-    ListDomains -> Domain.list settings
-    GetDomain dom -> Domain.get dom
-    CreateDomain dom -> Domain.create dom
+  case loadCfg cfgFile of
+    Nothing -> print "No settings!"
+    Just s -> do
+      let state = State.State { State.cfgFile = cfgFile
+                              , State.settings = s
+                              , State.identity = Identity.getIdentity s }
+      dispatch state cmd
+--  ident <- Identity.getIdentity settings
+--  let state = State.State { State.cfgFile = cfgFile
+--                    , State.settings = settings
+--                    , State.identity = ident }
+--  case cmd of
+--    WhoAmI -> Identity.whoami settings
+--    ListDomains -> Domain.list settings
+--    GetDomain dom -> Domain.get dom
+--    CreateDomain dom -> Domain.create dom
 
+dispatch :: State.State -> Command -> IO ()
+dispatch state WhoAmI = Identity.whoami $ State.settings state
+
+  
 
