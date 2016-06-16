@@ -6,12 +6,12 @@ module Config
   , readCfg
   , parseCfg
   , loadCfg
-  , Authorization
-  , Settings
-  , authorization
-  , username
-  , user_id
-  , api_key
+  , Authorization(..)
+  , Settings(..)
+--  , authorization
+--  , username
+--  , user_id
+--  , api_key
   ) where
 
 import Control.Monad (when)
@@ -19,13 +19,13 @@ import Data.Aeson as Aeson
 import Data.Aeson.Encode.Pretty as Aeson hiding (Config)
 import Data.Default
 import Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy.Char8 as LC (pack)
 import GHC.Generics
 import System.Directory
 import System.FilePath.Posix (joinPath)
 
 data Authorization =
   Authorization { username :: String
-                , user_id :: Integer
                 , api_key :: String }
   deriving (Show, Generic)
 
@@ -33,16 +33,21 @@ instance FromJSON Authorization
 instance ToJSON Authorization
 
 data Settings =
-  Settings { authorization :: Authorization }
+  Settings { authorization :: Authorization
+           , sandbox :: Bool
+           , verbose :: Bool
+           , debug :: Bool}
   deriving (Show, Generic)
 
 instance Default Settings where
   def = Settings {
     authorization = Authorization {
         username = "",
-        user_id = 0,
         api_key = ""
-        }
+        },
+      sandbox = True,
+      verbose = False,
+      debug = False
     }
 
 instance FromJSON Settings
@@ -55,7 +60,7 @@ getAppDirectory = do
   return appDir
 
 outputDefaultCfg :: FilePath -> IO ()
-outputDefaultCfg path = L.writeFile path (Aeson.encodePretty (def :: Settings))
+outputDefaultCfg path = L.writeFile path $ L.concat [(encodePretty (def :: Settings)),(LC.pack "\n")]
 
 createCfgFile :: FilePath -> IO ()
 createCfgFile path = do
