@@ -1,10 +1,13 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeSynonymInstances #-}
 
 module Identity
-  (Identity
+  ( Identity(..)
+  , Account(..)
+  , User
   , whoami
   , getIdentity
-  , getId) where
+  , getId
+  ) where
 
 import Data.Aeson
 import qualified Data.ByteString.Char8 as C

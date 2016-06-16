@@ -68,6 +68,7 @@ delete :: Settings -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteS
 delete settings path = do
   request settings "DELETE" "" [] path
 
+-- Make a request body from a lazy bytestring
 mkLRequestBody :: L.ByteString -> HC.RequestBody
 mkLRequestBody bs = HC.RequestBodyLBS bs
 
