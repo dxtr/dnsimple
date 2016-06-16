@@ -27,14 +27,11 @@ authorize settings = do
   
 createState :: Args.Options -> Maybe Settings -> Maybe Identity -> IO (Maybe State)
 createState o Nothing _ = do
+  c <- getCfgFile (Args.optCfgFile o)
   st <- loadCfg c
   case st of
     Nothing -> return Nothing
-    Just s -> createState c o (Just s) Nothing
-  where
-    c = case Args.optCfgFile o of
-      Nothing -> ""
-      Just path -> path
+    Just s -> createState o (Just s) Nothing
 createState o (Just s) Nothing = do
   ident <- getIdentity s
   case ident of
@@ -50,12 +47,13 @@ dnsimpleMain = do
   Args.argsParser run
                                   
 run :: Args.Options -> IO ()
-run cmd = do
-  cfgF <- getCfgFile
-  state <- createState cfgF Nothing Nothing
+run options = do
+  cfgF <- getCfgFile (Args.optCfgFile options)
+  state <- createState options Nothing Nothing
   case state of
     Nothing -> putStrLn "Could not create state!"
-    Just s -> dispatch s cmd
+    Just s -> dispatch s options
+  where cmd = Args.subCommand options
 --  ident <- Identity.getIdentity settings
 --  let state = State.State { State.cfgFile = cfgFile
 --                    , State.settings = settings

@@ -14,7 +14,10 @@ module Config
   , api_key
   ) where
 
-import Data.Aeson
+import Control.Monad (when)
+import Data.Aeson as Aeson
+import Data.Aeson.Encode.Pretty as Aeson hiding (Config)
+import Data.Default
 import Data.ByteString.Lazy as L
 import GHC.Generics
 import System.Directory
@@ -33,6 +36,15 @@ data Settings =
   Settings { authorization :: Authorization }
   deriving (Show, Generic)
 
+instance Default Settings where
+  def = Settings {
+    authorization = Authorization {
+        username = "",
+        user_id = 0,
+        api_key = ""
+        }
+    }
+
 instance FromJSON Settings
 instance ToJSON Settings
 
@@ -42,13 +54,30 @@ getAppDirectory = do
   createDirectoryIfMissing False appDir
   return appDir
 
-getCfgFile :: IO FilePath
-getCfgFile = do
+outputDefaultCfg :: FilePath -> IO ()
+outputDefaultCfg path = L.writeFile path (Aeson.encodePretty (def :: Settings))
+
+createCfgFile :: FilePath -> IO ()
+createCfgFile path = do
+  Prelude.putStrLn $ "Creating file " ++ path
+  outputDefaultCfg path
+
+getDefaultCfgFile :: IO FilePath
+getDefaultCfgFile = do
   appDir <- getAppDirectory
-  return $ joinPath [appDir, "config.json"]
+  let path = joinPath [appDir, "config.json"]
+  exists <- doesFileExist path
+  when (not exists) $ do
+    createCfgFile path
+  return path
+
+getCfgFile :: Maybe String -> IO FilePath
+getCfgFile (Just path) = return path
+getCfgFile Nothing = getDefaultCfgFile
 
 readCfg :: FilePath -> IO (Maybe L.ByteString)
 readCfg path = do
+  exists <- doesFileExist path
   cfg <- L.readFile path
   return $ case L.null cfg of
              True -> Nothing

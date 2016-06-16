@@ -1,39 +1,27 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+-- {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 
 module State
   ( State(..)
   , verboseEnabled
   , debugEnabled
+  , sandboxEnabled
   ) where
-
-import GHC.Generics (Generic)
 
 import Config (Settings)
 import Identity (Identity)
-import Args (Options, optVerbose, optDebug)
+import Args (Options(..))
 
-data State = State { cfgFile :: String
-                   , debug :: Bool
-                   , verbose :: Bool
-                   , sandbox :: Bool
-                   , settings :: Settings
+data State = State { settings :: Settings
                    , identity :: Identity
                    , options :: Options
                    }
-           deriving (Show, Generic)
+           deriving (Show)
 
 verboseEnabled :: State -> Bool
-verboseEnabled State{options=Options{optVerbose=verbose}} =
-  case verbose of
-    Nothing -> False
-    Just False -> False
-    Just True -> True
+verboseEnabled st = optVerbose (options st) == Just True
 
 debugEnabled :: State -> Bool
-debugEnabled State{options=Options{optDebug=dbg}} =
-  case dbg of
-    Nothing -> False
-    Just False -> False
-    Just True -> True
+debugEnabled st = optDebug (options st) == Just True
 
-
+sandboxEnabled :: State -> Bool
+sandboxEnabled st = optSandbox (options st) == Just True
