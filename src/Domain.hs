@@ -157,35 +157,16 @@ outputDomainList (Left err) = outputDomain (Left err)
 -- TODO: Filtering
 -- TODO: Sorting
 list :: State -> IO (Either ErrorResponse ([Domain], Pagination))
-list st = do
-  response <- HTTP.get (settings st) path
-  parseListResponse response
-  where uid = getId $ identity st
-        path = (show uid) ++ "/domains"
+list st = parseListResponse =<< HTTP.get (settings st) path
+  where path = (show $ getId $ identity st) ++ "/domains"
     
 get :: State -> String -> IO (Either ErrorResponse Domain)
-get st dom = do
-  resp <- HTTP.get (settings st) path
-  parseGetResponse resp
-  where uid = getId $ identity st
-        path = (show uid) ++ "/domains/" ++ dom
+get st dom = parseGetResponse =<< HTTP.get (settings st) path
+  where path = (show $ getId $ identity st) ++ "/domains/" ++ dom
 
 create :: State -> String -> IO (Either ErrorResponse Domain)
-create st dom = do
-  resp <- HTTP.post (settings st) path reqBody
-  parseCreateResponse resp
-  where uid = getId $ identity st
-        path = (show uid) ++ "/domains"
+create st dom = parseCreateResponse =<< HTTP.post (settings st) path reqBody
+  where path = (show $ getId $ identity st) ++ "/domains"
         reqBody = HTTP.mkLRequestBody $ encode $ makeCreateRequest dom
 
--- dispatchCommands :: Map.Map String ([String] -> [Args.Flag] -> IO ())
---dispatchCommands = Map.fromList [("list", list)
---                                ,("get", get)]
-
---dispatch :: [String] -> Settings -> [Args.Flag] -> IO ()
---dispatch [] _ _ = putStrLn "No domain command specified!"
---dispatch (cmd:cmdArgs) _ args =
---  case Map.lookup cmd dispatchCommands of
---    Nothing -> do putStrLn $ "Unknown domain command " ++ cmd
---    Just dispatchCmd -> do dispatchCmd cmdArgs args
   

@@ -19,11 +19,6 @@ import qualified Domain
 import qualified HTTP
 import State
 
--- authorize :: Settings -> IO (Bool, C.ByteString)
--- authorize settings = do
---   (status, msg, headers, body) <- HTTP.get settings "user"
---   return (status, msg)
-  
 createState :: Args.Options -> Maybe Settings -> Maybe Identity -> IO (Maybe State)
 createState o Nothing _ = do
   c <- getCfgFile (Args.optCfgFile o)
@@ -46,21 +41,11 @@ dnsimpleMain = do
   Args.argsParser run
                                   
 run :: Args.Options -> IO ()
-run options = do
-  -- cfgF <- getCfgFile (Args.optCfgFile options)
-  state <- createState options Nothing Nothing
+run opts = do
+  state <- createState opts Nothing Nothing
   case state of
     Nothing -> putStrLn "Could not create state!"
-    Just s -> dispatch s options
---  ident <- Identity.getIdentity settings
---  let state = State.State { State.cfgFile = cfgFile
---                    , State.settings = settings
---                    , State.identity = ident }
---  case cmd of
---    WhoAmI -> Identity.whoami settings
---    ListDomains -> Domain.list settings
---    GetDomain dom -> Domain.get dom
---    CreateDomain dom -> Domain.create dom
+    Just s -> dispatch s opts
 
 whoami :: State -> IO ()
 whoami state = do
@@ -80,4 +65,3 @@ dispatch state Args.Options {Args.subCommand = Args.WhoAmI} = whoami state
 dispatch state Args.Options {Args.subCommand = Args.ListDomains} = listDomains state
 dispatch state Args.Options {Args.subCommand = Args.GetDomain dom} = getDomain state dom
 dispatch state Args.Options {Args.subCommand = Args.CreateDomain dom} = createDomain state dom
-
