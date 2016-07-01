@@ -26,8 +26,7 @@ withInfo :: Parser a -> String -> ParserInfo a
 withInfo opts desc = info (helper <*> opts) $ progDesc desc
 
 makeCommand :: String -> String -> Parser a -> Mod CommandFields a
-makeCommand cmd desc p =
-  command cmd (p `withInfo` desc)
+makeCommand cmd desc p = command cmd (p `withInfo` desc)
 
 domainArg :: Parser String
 domainArg = strArgument (metavar "Domain")

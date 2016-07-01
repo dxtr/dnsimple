@@ -8,20 +8,35 @@ module HTTP
        , post
        , put
        , delete
+       , Response(..)
        ) where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.ByteString.Char8 as C
-import Data.ByteString.Lazy as L
+import qualified Data.ByteString.Char8 as C
+import qualified Data.ByteString.Lazy as L
 import qualified Network.HTTP.Conduit as HC
-import Network.HTTP.Types as HT
+import qualified Network.HTTP.Types as HT
 
-import Config (Settings, authorization, api_key)
+import Config
 
 -- getCredentials :: C.ByteString
 -- getCredentials = C.concat [username, (C.pack ":"), apiToken]
 
-getHeaders :: Settings -> [(HeaderName, C.ByteString)]
+type ResponseHeaders = HT.ResponseHeaders
+
+data Response =
+  Response { statusCode :: Int
+           , statusMessage :: C.ByteString
+           , responseHeaders :: ResponseHeaders
+           , responseBody :: L.ByteString
+           }
+  deriving (Show)
+
+getApiUrl :: Bool -> String
+getApiUrl True = "https://api.sandbox.dnsimple.com/v2/"
+getApiUrl False = "https://api.dnsimple.com/v2/"
+
+getHeaders :: Settings -> [(HT.HeaderName, C.ByteString)]
 getHeaders settings = [("Accept", "application/json; charset=UTF-8")
                       , ("Content-Type", "application/json")
                       , ("Authorization", tokenString)
@@ -30,41 +45,34 @@ getHeaders settings = [("Accept", "application/json; charset=UTF-8")
     authSettings = authorization settings
     token = api_key authSettings
     tokenString = C.pack $ "Bearer " ++ token
-request :: Settings -> C.ByteString -> HC.RequestBody -> [Header] -> String -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+request :: Settings -> C.ByteString -> HC.RequestBody -> [HT.Header] -> String -> IO (Response)
 request settings method body additionalHeaders path = do
-  let url = Prelude.concat ["https://api.sandbox.dnsimple.com/v2/",path]
-  let headers = getHeaders settings
-  print settings
-  print headers
-  request' <- HC.parseUrl url
-  let request = request' { HC.method = method
-                         , HC.requestBody = body
-                         , HC.requestHeaders = headers ++ additionalHeaders ++ HC.requestHeaders request'
-                         , HC.checkStatus = \_ _ _ -> Nothing}
+  request' <- HC.parseUrl $ concat [getApiUrl (sandbox settings), path]
   manager <- liftIO $ HC.newManager HC.tlsManagerSettings
-  req <- HC.httpLbs request manager
-  let statusCd = statusCode $ HC.responseStatus req
-  print statusCd
-  let msg = statusMessage $ HC.responseStatus req
-  let headers = HC.responseHeaders req
-  let body = HC.responseBody req
-  let status = (statusCd == 200) || (statusCd == 201)
-  return (status, msg, headers, body)
+  req <- HC.httpLbs (request' { HC.method = method
+                              , HC.requestBody = body
+                              , HC.requestHeaders = (getHeaders settings) ++ additionalHeaders ++ HC.requestHeaders request'
+                              , HC.checkStatus = \_ _ _ -> Nothing})
+         manager
+  return Response { statusCode = HT.statusCode $ HC.responseStatus req
+                  , statusMessage = HT.statusMessage $ HC.responseStatus req
+                  , responseHeaders = HC.responseHeaders req
+                  , responseBody = HC.responseBody req
+                  }
 
-
-get :: Settings -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+get :: Settings -> [Char] -> IO (Response)
 get settings path = do
   request settings "GET" "" [] path
 
-post :: Settings -> [Char] -> HC.RequestBody -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+post :: Settings -> [Char] -> HC.RequestBody -> IO (Response)
 post settings path postData = do
   request settings "POST" postData [] path
 
-put :: Settings -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+put :: Settings -> [Char] -> IO (Response)
 put settings path = do
   request settings "PUT" "" [] path
 
-delete :: Settings -> [Char] -> IO (Bool, C.ByteString, ResponseHeaders, L.ByteString)
+delete :: Settings -> [Char] -> IO (Response)
 delete settings path = do
   request settings "DELETE" "" [] path
 

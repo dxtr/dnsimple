@@ -4,7 +4,7 @@ module Identity
   ( Identity(..)
   , Account(..)
   , User
-  , whoami
+  , outputIdentity
   , getIdentity
   , getId
   ) where
@@ -14,12 +14,15 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as L
 import GHC.Generics
 
-import qualified HTTP
+import qualified HTTP (Response(..), get)
 import Config (Settings)
 
 data Account =
   Account { id :: Integer
           , email :: String
+          , plan_identifier :: String
+          , created_at :: String
+          , updated_at :: String
           }
   deriving (Show, Generic)
 
@@ -60,11 +63,9 @@ instance ToJSON Account
 instance ToJSON Identity
 instance ToJSON Response
 
-parseResponse :: Bool -> C.ByteString -> L.ByteString -> Bool -> IO (Maybe Response)
-parseResponse status msg body lst = do
-  print status
-  print msg
-  print body
+parseResponse :: HTTP.Response -> IO (Maybe Response)
+parseResponse resp = do
+  let body = HTTP.responseBody resp
   let responseObj = eitherDecode body :: Either String Response
   case responseObj of
     Left err -> do
@@ -76,21 +77,28 @@ parseResponse status msg body lst = do
 
 getIdentity :: Settings -> IO (Maybe Identity)
 getIdentity settings = do
-  (status, msg, _, body) <- HTTP.get settings "whoami"
-  response <- parseResponse status msg body False
+  resp <- HTTP.get settings "whoami"
+  response <- parseResponse resp
   case response of
     Nothing -> return Nothing
     (Just resp) -> do
       let ident = iddata resp
       return ident
 
-whoami :: Settings -> IO ()
-whoami settings = do
-  ident <- getIdentity settings
-  case ident of
-    Nothing -> return ()
-    (Just i) -> do
-      print i
+outputIdentity :: Identity -> IO ()
+outputIdentity Identity { account = (Just acc), user = _ } = do
+  putStrLn "Account"
+  putStrLn $ "Id: " ++ show (Identity.id acc)
+  putStrLn $ "Email: " ++ email acc
+  putStrLn $ "Plan: " ++ plan_identifier acc
+  putStrLn $ "Created at: " ++ created_at acc
+  putStrLn $ "Updated at: " ++ updated_at acc
+outputIdentity Identity { account = Nothing, user = (Just usr) } = do
+  putStrLn "User"
+  putStrLn $ "Id: " ++ show (Identity.id usr)
+  putStrLn $ "Email: " ++ email usr
+outputIdentity Identity { account = Nothing, user = Nothing } = do
+  putStrLn "Error! Neither account nor user"
 
 getId :: Identity -> Integer
 getId Identity { account = Just acc } = Identity.id acc
