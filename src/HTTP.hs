@@ -19,9 +19,6 @@ import qualified Network.HTTP.Types as HT
 
 import Config
 
--- getCredentials :: C.ByteString
--- getCredentials = C.concat [username, (C.pack ":"), apiToken]
-
 type ResponseHeaders = HT.ResponseHeaders
 
 data Response =
@@ -45,13 +42,13 @@ getHeaders settings = [("Accept", "application/json; charset=UTF-8")
     authSettings = authorization settings
     token = api_key authSettings
     tokenString = C.pack $ "Bearer " ++ token
-request :: Settings -> C.ByteString -> HC.RequestBody -> [HT.Header] -> String -> IO (Response)
+request :: Settings -> C.ByteString -> HC.RequestBody -> [HT.Header] -> String -> IO Response
 request settings method body additionalHeaders path = do
-  request' <- HC.parseUrl $ concat [getApiUrl (sandbox settings), path]
+  request' <- HC.parseUrl $ getApiUrl (sandbox settings) ++ path
   manager <- liftIO $ HC.newManager HC.tlsManagerSettings
   req <- HC.httpLbs (request' { HC.method = method
                               , HC.requestBody = body
-                              , HC.requestHeaders = (getHeaders settings) ++ additionalHeaders ++ HC.requestHeaders request'
+                              , HC.requestHeaders = getHeaders settings ++ additionalHeaders ++ HC.requestHeaders request'
                               , HC.checkStatus = \_ _ _ -> Nothing})
          manager
   return Response { statusCode = HT.statusCode $ HC.responseStatus req
@@ -60,25 +57,21 @@ request settings method body additionalHeaders path = do
                   , responseBody = HC.responseBody req
                   }
 
-get :: Settings -> [Char] -> IO (Response)
-get settings path = do
-  request settings "GET" "" [] path
+get :: Settings -> String -> IO Response
+get settings = request settings "GET" "" []
 
-post :: Settings -> [Char] -> HC.RequestBody -> IO (Response)
-post settings path postData = do
-  request settings "POST" postData [] path
+post :: Settings -> String -> HC.RequestBody -> IO Response
+post settings path postData = request settings "POST" postData [] path
 
-put :: Settings -> [Char] -> IO (Response)
-put settings path = do
-  request settings "PUT" "" [] path
+put :: Settings -> String -> IO Response
+put settings = request settings "PUT" "" []
 
-delete :: Settings -> [Char] -> IO (Response)
-delete settings path = do
-  request settings "DELETE" "" [] path
+delete :: Settings -> String -> IO Response
+delete settings = request settings "DELETE" "" []
 
 -- Make a request body from a lazy bytestring
 mkLRequestBody :: L.ByteString -> HC.RequestBody
-mkLRequestBody bs = HC.RequestBodyLBS bs
+mkLRequestBody = HC.RequestBodyLBS
 
 mkSRequestBody :: C.ByteString -> HC.RequestBody
-mkSRequestBody bs = HC.RequestBodyBS bs
+mkSRequestBody = HC.RequestBodyBS

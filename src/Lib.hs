@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Lib
     ( dnsimpleMain
@@ -37,8 +37,7 @@ createState o (Just s) (Just i) = return $ Just State.State { State.settings = s
                                                             }
 
 dnsimpleMain :: IO ()
-dnsimpleMain = do
-  Args.argsParser run
+dnsimpleMain = Args.argsParser run
                                   
 run :: Args.Options -> IO ()
 run opts = do
@@ -48,8 +47,7 @@ run opts = do
     Just s -> dispatch s opts
 
 whoami :: State -> IO ()
-whoami state = do
-  outputIdentity $ identity state
+whoami state = outputIdentity $ identity state
 
 getDomain :: State -> String -> IO ()
 getDomain state dom = Domain.outputDomain =<< Domain.get state dom

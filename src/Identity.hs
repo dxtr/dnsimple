@@ -72,8 +72,7 @@ parseResponse resp = do
       putStrLn "Error!"
       putStrLn err
       return Nothing
-    Right obj -> do
-      return (Just obj)
+    Right obj -> return $ Just obj
 
 getIdentity :: Settings -> IO (Maybe Identity)
 getIdentity settings = do
@@ -81,8 +80,8 @@ getIdentity settings = do
   response <- parseResponse resp
   case response of
     Nothing -> return Nothing
-    (Just resp) -> do
-      let ident = iddata resp
+    Just r -> do
+      let ident = iddata r
       return ident
 
 outputIdentity :: Identity -> IO ()
@@ -97,8 +96,7 @@ outputIdentity Identity { account = Nothing, user = (Just usr) } = do
   putStrLn "User"
   putStrLn $ "Id: " ++ show (Identity.id usr)
   putStrLn $ "Email: " ++ email usr
-outputIdentity Identity { account = Nothing, user = Nothing } = do
-  putStrLn "Error! Neither account nor user"
+outputIdentity Identity { account = Nothing, user = Nothing } = putStrLn "Error! Neither account nor user"
 
 getId :: Identity -> Integer
 getId Identity { account = Just acc } = Identity.id acc

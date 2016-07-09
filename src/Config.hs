@@ -14,7 +14,7 @@ module Config
 --  , api_key
   ) where
 
-import Control.Monad (when)
+import Control.Monad (when, unless)
 import Data.Aeson as Aeson
 import Data.Aeson.Encode.Pretty as Aeson hiding (Config)
 import Data.Default
@@ -60,7 +60,7 @@ getAppDirectory = do
   return appDir
 
 outputDefaultCfg :: FilePath -> IO ()
-outputDefaultCfg path = L.writeFile path $ L.concat [(encodePretty (def :: Settings)),(LC.pack "\n")]
+outputDefaultCfg path = L.writeFile path $ L.concat [encodePretty (def :: Settings), LC.pack "\n"]
 
 createCfgFile :: FilePath -> IO ()
 createCfgFile path = do
@@ -72,8 +72,7 @@ getDefaultCfgFile = do
   appDir <- getAppDirectory
   let path = joinPath [appDir, "config.json"]
   exists <- doesFileExist path
-  when (not exists) $ do
-    createCfgFile path
+  unless exists $ createCfgFile path
   return path
 
 getCfgFile :: Maybe String -> IO FilePath
@@ -84,9 +83,7 @@ readCfg :: FilePath -> IO (Maybe L.ByteString)
 readCfg path = do
   exists <- doesFileExist path
   cfg <- L.readFile path
-  return $ case L.null cfg of
-             True -> Nothing
-             False -> Just cfg
+  return $ if L.null cfg then Nothing else Just cfg
 
 parseCfg :: L.ByteString -> IO (Maybe Settings)
 parseCfg cfg = case eitherDecode cfg of
@@ -94,8 +91,7 @@ parseCfg cfg = case eitherDecode cfg of
     Prelude.putStrLn "Error parsing config:"
     Prelude.putStrLn err
     return Nothing
-  Right obj -> do
-    return $ Just obj
+  Right obj -> return $ Just obj
 
 loadCfg :: FilePath -> IO (Maybe Settings)
 loadCfg cfgFile = do
